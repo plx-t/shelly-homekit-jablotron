@@ -1,113 +1,59 @@
-// shelly_hap_security_system.hpp
-// HomeKit SecuritySystem service for Shelly 1 G3 + Jablotron 100
-//
-// Hardware wiring:
-//   status_input  (SW)    ← JB-111N relay NO contact  (closed = section armed)
-//   arm_output    (Relay) → JA-111H-AD input 2        (impulse toggle arm/disarm)
-//
-// Logic:
-//   - JB-111N is ground truth; current_state_ always mirrors it
-//   - Commands send a 500ms pulse only if state needs to change
-//   - External changes (keypad, app) are detected via input event and
-//     pushed to HomeKit immediately
-//   - After every pulse, state is verified against JB-111N with retries
-
 #pragma once
+
+#include "mgos_hap_chars.hpp"
+#include "mgos_hap_service.hpp"
 
 #include "shelly_common.hpp"
 #include "shelly_component.hpp"
 #include "shelly_input.hpp"
 #include "shelly_output.hpp"
 
-#include "HAP.h"
-
 namespace shelly {
 namespace hap {
 
-class SecuritySystem : public Component {
+class SecuritySystem : public Component, public mgos::hap::Service {
  public:
-  SecuritySystem(int id,
-                 Input *status_input,
-                 Output *arm_output,
-                 HAPAccessoryServerRef *server,
-                 const HAPAccessory *accessory,
-                 struct mg_rpc *rpc);
-
+  SecuritySystem(int id, Input *status_input, Output *arm_output,
+                 struct mgos_config_sw *cfg);
   virtual ~SecuritySystem();
 
   // Component interface
+  Type type() const override;
+  std::string name() const override;
   Status Init() override;
   StatusOr<std::string> GetInfo() const override;
   StatusOr<std::string> GetInfoJSON() const override;
   Status SetConfig(const std::string &config_json,
                    bool *restart_required) override;
-
-  // Returns the static HAP service descriptor for registration
-  static const HAPService *GetHAPService();
-
-  // HAP characteristic read/write callbacks (public for static linkage)
-  static HAPError HandleCurrentStateRead(
-      HAPAccessoryServerRef *server,
-      const HAPUInt8CharacteristicReadRequest *request,
-      uint8_t *value,
-      void *context);
-
-  static HAPError HandleTargetStateRead(
-      HAPAccessoryServerRef *server,
-      const HAPUInt8CharacteristicReadRequest *request,
-      uint8_t *value,
-      void *context);
-
-  static HAPError HandleTargetStateWrite(
-      HAPAccessoryServerRef *server,
-      const HAPUInt8CharacteristicWriteRequest *request,
-      uint8_t value,
-      void *context);
+  Status SetState(const std::string &state_json) override;
 
  private:
-  Input *const status_input_;
-  Output *const arm_output_;
-  HAPAccessoryServerRef *const server_;
-  const HAPAccessory *const accessory_;
+  Input *status_input_;
+  Output *arm_output_;
+  struct mgos_config_sw *cfg_;
 
-  // HAP state values
-  // CurrentSecuritySystemState: 0=StayArm 1=AwayArm 2=NightArm 3=Disarmed 4=AlarmTriggered
-  // TargetSecuritySystemState:  0=StayArm 1=AwayArm 2=NightArm 3=Disarmed
-  uint8_t current_state_;
-  uint8_t target_state_;
+  uint8_t current_state_ = 3;  // 3 = Disarmed
+  uint8_t target_state_  = 3;
+  bool    pulse_in_progress_ = false;
+  int     verify_retries_    = 0;
 
-  // Pulse guard — prevents overlapping relay pulses
-  bool pulse_in_progress_;
+  static constexpr int kPulseMs   = 500;
+  static constexpr int kVerifyMs  = 2000;
+  static constexpr int kMaxRetries = 3;
 
-  // Retry counter for post-pulse state verification
-  int verify_retries_;
+  mgos::hap::UInt8Characteristic *current_state_char_ = nullptr;
+  mgos::hap::UInt8Characteristic *target_state_char_  = nullptr;
 
-  static constexpr int kPulseMs      = 500;   // relay ON duration (ms)
-  static constexpr int kVerifyMs     = 3000;  // wait for panel to respond (ms)
-  static constexpr int kMaxRetries   = 2;     // max verification retries
-
-  // Convenience helpers
-  bool IsArmed()    const { return current_state_ != 3; }
-  bool WantsArmed() const { return target_state_  != 3; }
-
-  // Called by Input event handler when JB-111N relay state changes
   void OnInputChanged(Input::Event ev, bool state);
-
-  // Derive current_state_ from raw input level
   void UpdateCurrentState(bool input_active);
-
-  // Raise HAP events for both current and target state characteristics
-  void NotifyHomeKit();
-
-  // Send a kPulseMs pulse to the JA-111H-AD toggle input
   void SendPulse();
+  void NotifyHomeKit();
+  bool IsArmed() const { return current_state_ < 3; }
+  bool WantsArmed() const { return target_state_ < 3; }
 
-  // Called kVerifyMs after a pulse; retries if panel didn't respond
-  void VerifyState();
-
-  // Static timer trampolines
   static void PulseEndCallback(void *arg);
   static void VerifyStateCallback(void *arg);
+  void VerifyState();
 };
 
 }  // namespace hap
