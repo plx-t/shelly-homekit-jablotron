@@ -27,6 +27,16 @@ jobs:
           git config --global --add safe.directory $GITHUB_WORKSPACE
           mkdir -p deps/modules
           git clone --depth 1 https://github.com/markirb/mongoose-os deps/modules/mongoose-os
+          make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom || true
+          # mos checks out master which lacks Makefile.build in platforms/esp32c3/
+          # but the directory exists — create a symlink to fw/platforms/esp32c3/Makefile.build
+          ls deps/modules/mongoose-os/fw/platforms/esp32c3/ 2>/dev/null || ls deps/modules/mongoose-os/platforms/esp32c3/ 2>/dev/null
+          if [ -f "deps/modules/mongoose-os/fw/platforms/esp32c3/Makefile.build" ]; then
+            ln -sf /__w/shelly-homekit-jablotron/shelly-homekit-jablotron/deps/modules/mongoose-os/fw/platforms/esp32c3/Makefile.build \
+              deps/modules/mongoose-os/platforms/esp32c3/Makefile.build
+          else
+            find deps/modules/mongoose-os -name "Makefile.build" 2>/dev/null | head -5
+          fi
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom
         working-directory: ${{ github.workspace }}
       - name: Upload firmware artifacts
