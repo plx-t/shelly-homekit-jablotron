@@ -61,7 +61,6 @@ void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
       mgos_sys_config_get_sw1_name(),
       GetIdentifyCB(),
       svr);
-  acc->AddHAPService(&kHAPServiceType_AccessoryInformation);
   acc->AddService(sec);
 
   comps->emplace_back(sec);
