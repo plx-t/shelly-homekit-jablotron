@@ -1,8 +1,12 @@
-// src/ShellyPlus1/shelly_init.cpp
-// Shelly 1 G3 init for Jablotron 100 SecuritySystem integration.
-//
-// GPIO 7  → SW input  ← JB-111N relay NO (closed = section armed)
-// GPIO 26 → Relay     → JA-111H-AD input 2 (impulse toggle)
+/*
+ * Shelly 1 G3 init — Jablotron 100 SecuritySystem
+ *
+ * GPIO 7  → SW input  ← JB-111N relay NO (closed = section armed)
+ * GPIO 26 → Relay     → JA-111H-AD input 2 (impulse toggle)
+ */
+
+#include "mgos.hpp"
+#include "mgos_hap_accessory.hpp"
 
 #include "shelly_hap_security_system.hpp"
 #include "shelly_input_pin.hpp"
@@ -29,40 +33,40 @@ void CreatePeripherals(std::vector<std::unique_ptr<Input>>      *inputs,
 
 void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
                       std::vector<std::unique_ptr<mgos::hap::Accessory>> *accs,
-                      HAPAccessoryServerRef                               *server) {
-  Input  *status_input = FindInput(1);
-  Output *arm_output   = FindOutput(1);
+                      HAPAccessoryServerRef                               *svr) {
+  Input  *in  = FindInput(1);
+  Output *out = FindOutput(1);
 
-  if (!status_input || !arm_output) {
-    LOG(LL_ERROR, ("SecuritySystem: peripherals not found!"));
+  if (!in || !out) {
+    LOG(LL_ERROR, ("SecuritySystem: peripherals not found"));
+    return;
+  }
+
+  auto *sec = new hap::SecuritySystem(1, in, out, nullptr);
+
+  const int id1 = 0;
+  uint16_t iid = SHELLY_HAP_IID_BASE_SWITCH +
+                 (SHELLY_HAP_IID_STEP_SWITCH * id1);
+  sec->set_iid(iid);
+
+  auto st = sec->Init();
+  if (!st.ok()) {
+    LOG(LL_ERROR, ("SecuritySystem init: %s", st.ToString().c_str()));
+    delete sec;
     return;
   }
 
   auto *acc = new mgos::hap::Accessory(
-      SHELLY_HAP_AID_BASE,
+      SHELLY_HAP_AID_BASE_SWITCH + id1,
       kHAPAccessoryCategory_SecuritySystems,
-      "Jablotron Security",
+      mgos_sys_config_get_sw1_name(),
       GetIdentifyCB(),
-      server);
-
+      svr);
   acc->AddHAPService(&mgos::hap::kAccessoryInformationService);
-
-  auto *sec = new hap::SecuritySystem(1, status_input, arm_output, nullptr);
-
-  sec->set_service_iid(2);
   acc->AddService(sec);
-
-  auto st = sec->Init();
-  if (!st.ok()) {
-    LOG(LL_ERROR, ("SecuritySystem init failed: %s", st.ToString().c_str()));
-    delete acc;
-    return;
-  }
 
   comps->emplace_back(sec);
   accs->emplace_back(acc);
-
-  LOG(LL_INFO, ("SecuritySystem registered"));
 }
 
 }  // namespace shelly
