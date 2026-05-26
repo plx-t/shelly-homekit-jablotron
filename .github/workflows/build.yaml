@@ -18,10 +18,10 @@ jobs:
          fetch-depth: 0
      - name: Install mos
        run: |
-          sudo curl -fsSL https://mongoose-os.com/downloads/mos/install.sh | /bin/bash
-          which mos || find / -name mos -type f 2>/dev/null | head -5
-          ls ~/mos_latest/ 2>/dev/null || true
-          ls /usr/local/bin/mos 2>/dev/null || true
+          curl -fsSL https://mongoose-os.com/downloads/mos-linux64 -o /tmp/mos
+          chmod +x /tmp/mos
+          sudo mv /tmp/mos /usr/local/bin/mos
+          mos version
      - name: Build
        run: |
          git config --global --add safe.directory $GITHUB_WORKSPACE
