@@ -1,4 +1,4 @@
-// shelly_hap_security_system.cpp
+// src/shelly_hap_security_system.cpp
 // Jablotron 100 HomeKit SecuritySystem integration for Shelly 1 G3
 
 #include "shelly_hap_security_system.hpp"
@@ -8,11 +8,6 @@
 
 namespace shelly {
 namespace hap {
-
-// HAP spec short UUIDs for Security System
-// 0x7E = Security System service
-// 0x66 = Current Security System State
-// 0x67 = Target Security System State
 
 SecuritySystem::SecuritySystem(int id, Input *status_input, Output *arm_output,
                                struct mgos_config_sw *cfg)
@@ -25,7 +20,7 @@ SecuritySystem::SecuritySystem(int id, Input *status_input, Output *arm_output,
 }
 
 SecuritySystem::~SecuritySystem() {
-  if (status_input_) status_input_->RemoveHandler();
+  if (status_input_) status_input_->RemoveHandler(input_handler_id_);
 }
 
 Component::Type SecuritySystem::type() const {
@@ -37,37 +32,33 @@ std::string SecuritySystem::name() const {
 }
 
 Status SecuritySystem::Init() {
-  // Relay off at boot
   arm_output_->SetState(false, "init");
 
-  // Read real panel state from JB-111N
   bool input_active = status_input_->GetState();
   UpdateCurrentState(input_active);
   target_state_ = IsArmed() ? 1 : 3;
 
-  // Current Security System State (read-only, notifiable)
   current_state_char_ = new mgos::hap::UInt8Characteristic(
-      iid_next(), &kHAPCharacteristicType_SecuritySystemCurrentState,
+      iid() + 1, &kHAPCharacteristicType_SecuritySystemCurrentState,
       0, 4, 1,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
              uint8_t *value) {
         *value = current_state_;
         return kHAPError_None;
       },
-      true,  // supports notifications
+      true,
       nullptr);
   AddChar(current_state_char_);
 
-  // Target Security System State (read-write, notifiable)
   target_state_char_ = new mgos::hap::UInt8Characteristic(
-      iid_next(), &kHAPCharacteristicType_SecuritySystemTargetState,
+      iid() + 2, &kHAPCharacteristicType_SecuritySystemTargetState,
       0, 3, 1,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
              uint8_t *value) {
         *value = target_state_;
         return kHAPError_None;
       },
-      true,  // supports notifications
+      true,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicWriteRequest *,
              uint8_t value) {
         if (value > 3) return kHAPError_InvalidData;
@@ -85,8 +76,7 @@ Status SecuritySystem::Init() {
       });
   AddChar(target_state_char_);
 
-  // Subscribe to JB-111N relay changes
-  status_input_->AddHandler(
+  input_handler_id_ = status_input_->AddHandler(
       [this](Input::Event ev, bool state) { OnInputChanged(ev, state); });
 
   LOG(LL_INFO,
@@ -107,8 +97,7 @@ void SecuritySystem::OnInputChanged(Input::Event ev, bool state) {
     target_state_ = 1;
   }
   NotifyHomeKit();
-  LOG(LL_INFO,
-      ("SecuritySystem %d: input change state %d→%d", id(), old_state, current_state_));
+  LOG(LL_INFO, ("SecuritySystem %d: state %d->%d", id(), old_state, current_state_));
 }
 
 void SecuritySystem::UpdateCurrentState(bool input_active) {
