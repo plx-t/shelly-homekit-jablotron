@@ -778,6 +778,7 @@ conds:
         - src/DS18XXX
         - src/DHT
         - src/ShellyPlus1
+        - src
       libs:
         - location: https://github.com/mongoose-os-libs/onewire
         - location: https://github.com/mongoose-os-libs/dht
