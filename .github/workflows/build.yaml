@@ -25,14 +25,11 @@ jobs:
       - name: Build
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
-          make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=$(git describe --tags --always 2>/dev/null || echo "custom") || true
-          if [ -d "deps/modules/mongoose-os" ] && [ ! -f "deps/modules/mongoose-os/platforms/esp32c3/Makefile.build" ]; then
-            echo "Fixing mongoose-os: checking out esp32c3-compatible commit..."
-            cd deps/modules/mongoose-os
-            git fetch origin
-            git checkout a7e7eb8
-            cd $GITHUB_WORKSPACE
-          fi
+          mkdir -p deps/modules
+          git clone https://github.com/cesanta/mongoose-os deps/modules/mongoose-os
+          cd deps/modules/mongoose-os
+          git checkout a7e7eb8
+          cd $GITHUB_WORKSPACE
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=$(git describe --tags --always 2>/dev/null || echo "custom")
         working-directory: ${{ github.workspace }}
       - name: Upload firmware artifacts
