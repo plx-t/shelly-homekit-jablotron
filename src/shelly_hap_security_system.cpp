@@ -1,77 +1,180 @@
-// src/ShellyPlus1/shelly_init.cpp
-//
-// Shelly 1 G3 peripheral and component initialisation.
-// Modified for Jablotron 100 SecuritySystem integration.
-//
-// Hardware mapping (Shelly 1 G3 / ESP32-C3):
-//   GPIO 7  → SW input   ← JB-111N relay NO (closed = section armed)
-//   GPIO 26 → Relay      → JA-111H-AD input 2 (impulse toggle)
+// shelly_hap_security_system.cpp
+// Jablotron 100 HomeKit SecuritySystem integration for Shelly 1 G3
 
 #include "shelly_hap_security_system.hpp"
-#include "shelly_input_pin.hpp"
-#include "shelly_main.hpp"
-#include "shelly_output_pin.hpp"
-#include "shelly_temp_sensor.hpp"
+
+#include "mgos.hpp"
+#include "mgos_hap_chars.hpp"
 
 namespace shelly {
+namespace hap {
 
-void CreatePeripherals(std::vector<std::unique_ptr<Input>>    *inputs,
-                       std::vector<std::unique_ptr<Output>>   *outputs,
-                       std::vector<std::unique_ptr<PowerMeter>> *pms,
-                       std::unique_ptr<TempSensor>            *sys_temp) {
+// HAP spec short UUIDs for Security System
+// 0x7E = Security System service
+// 0x66 = Current Security System State
+// 0x67 = Target Security System State
 
-  outputs->emplace_back(new OutputPin(1, 26, 1));
-
-  auto *in1 = new InputPin(1, 7, 1, MGOS_GPIO_PULL_UP, true);
-  in1->AddHandler(std::bind(&HandleInputResetSequence, in1, 26, _1, _2));
-  in1->Init();
-  inputs->emplace_back(in1);
-
-  (void) pms;
-  (void) sys_temp;
+SecuritySystem::SecuritySystem(int id, Input *status_input, Output *arm_output,
+                               struct mgos_config_sw *cfg)
+    : Component(id),
+      mgos::hap::Service(0x7E, &kHAPServiceType_SecuritySystem,
+                         kHAPServiceDebugDescription_SecuritySystem),
+      status_input_(status_input),
+      arm_output_(arm_output),
+      cfg_(cfg) {
 }
 
-void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
-                      std::vector<std::unique_ptr<mgos::hap::Accessory>> *accs,
-                      HAPAccessoryServerRef                               *server) {
-
-  Input  *status_input = FindInput(1);
-  Output *arm_output   = FindOutput(1);
-
-  if (!status_input || !arm_output) {
-    LOG(LL_ERROR, ("SecuritySystem: peripherals not found!"));
-    return;
-  }
-
-  auto *acc = new mgos::hap::Accessory(
-      SHELLY_HAP_AID_BASE,
-      kHAPAccessoryCategory_SecuritySystems,
-      "Jablotron Security",
-      GetIdentifyCB(),
-      server);
-
-  acc->AddHAPService(&mgos::hap::kAccessoryInformationService);
-
-  auto *sec = new hap::SecuritySystem(
-      1,
-      status_input,
-      arm_output,
-      nullptr  /* mgos_config_sw* — unused, pass nullptr */);
-
-  sec->set_service_iid(2);
-  acc->AddService(sec);
-
-  auto st = sec->Init();
-  if (!st.ok()) {
-    LOG(LL_ERROR, ("SecuritySystem init failed: %s", st.ToString().c_str()));
-    delete acc;
-    return;
-  }
-
-  comps->emplace_back(sec);
-  accs->emplace_back(acc);
-
-  LOG(LL_INFO, ("SecuritySystem registered"));
+SecuritySystem::~SecuritySystem() {
+  if (status_input_) status_input_->RemoveHandler();
 }
 
+Component::Type SecuritySystem::type() const {
+  return Type::kSwitch;
+}
+
+std::string SecuritySystem::name() const {
+  return "SecuritySystem";
+}
+
+Status SecuritySystem::Init() {
+  // Relay off at boot
+  arm_output_->SetState(false, "init");
+
+  // Read real panel state from JB-111N
+  bool input_active = status_input_->GetState();
+  UpdateCurrentState(input_active);
+  target_state_ = IsArmed() ? 1 : 3;
+
+  // Current Security System State (read-only, notifiable)
+  current_state_char_ = new mgos::hap::UInt8Characteristic(
+      iid_next(), &kHAPCharacteristicType_SecuritySystemCurrentState,
+      0, 4, 1,
+      [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
+             uint8_t *value) {
+        *value = current_state_;
+        return kHAPError_None;
+      },
+      true,  // supports notifications
+      nullptr);
+  AddChar(current_state_char_);
+
+  // Target Security System State (read-write, notifiable)
+  target_state_char_ = new mgos::hap::UInt8Characteristic(
+      iid_next(), &kHAPCharacteristicType_SecuritySystemTargetState,
+      0, 3, 1,
+      [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
+             uint8_t *value) {
+        *value = target_state_;
+        return kHAPError_None;
+      },
+      true,  // supports notifications
+      [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicWriteRequest *,
+             uint8_t value) {
+        if (value > 3) return kHAPError_InvalidData;
+        bool want_armed = (value < 3);
+        bool is_armed   = IsArmed();
+        target_state_   = value;
+        verify_retries_ = 0;
+        if (want_armed == is_armed) {
+          if (is_armed && current_state_ != value) current_state_ = value;
+          NotifyHomeKit();
+        } else {
+          SendPulse();
+        }
+        return kHAPError_None;
+      });
+  AddChar(target_state_char_);
+
+  // Subscribe to JB-111N relay changes
+  status_input_->AddHandler(
+      [this](Input::Event ev, bool state) { OnInputChanged(ev, state); });
+
+  LOG(LL_INFO,
+      ("SecuritySystem %d init: input=%s cur=%d tgt=%d",
+       id(), input_active ? "ARMED" : "DISARMED", current_state_, target_state_));
+
+  return Status::OK();
+}
+
+void SecuritySystem::OnInputChanged(Input::Event ev, bool state) {
+  if (ev != Input::Event::kChange) return;
+  uint8_t old_state = current_state_;
+  UpdateCurrentState(state);
+  if (current_state_ == old_state) return;
+  if (!IsArmed()) {
+    target_state_ = 3;
+  } else if (target_state_ == 3) {
+    target_state_ = 1;
+  }
+  NotifyHomeKit();
+  LOG(LL_INFO,
+      ("SecuritySystem %d: input change state %d→%d", id(), old_state, current_state_));
+}
+
+void SecuritySystem::UpdateCurrentState(bool input_active) {
+  if (input_active) {
+    current_state_ = (target_state_ < 3) ? target_state_ : 1;
+  } else {
+    current_state_ = 3;
+  }
+}
+
+void SecuritySystem::SendPulse() {
+  if (pulse_in_progress_) return;
+  pulse_in_progress_ = true;
+  arm_output_->SetState(true, "pulse");
+  mgos_set_timer(kPulseMs, 0, PulseEndCallback, this);
+}
+
+void SecuritySystem::PulseEndCallback(void *arg) {
+  auto *self = static_cast<SecuritySystem *>(arg);
+  self->arm_output_->SetState(false, "pulse-end");
+  self->pulse_in_progress_ = false;
+  mgos_set_timer(kVerifyMs, 0, VerifyStateCallback, self);
+}
+
+void SecuritySystem::VerifyStateCallback(void *arg) {
+  static_cast<SecuritySystem *>(arg)->VerifyState();
+}
+
+void SecuritySystem::VerifyState() {
+  if (WantsArmed() == IsArmed()) {
+    verify_retries_ = 0;
+    return;
+  }
+  if (verify_retries_ < kMaxRetries) {
+    verify_retries_++;
+    SendPulse();
+  } else {
+    verify_retries_ = 0;
+    target_state_   = IsArmed() ? 1 : 3;
+    NotifyHomeKit();
+  }
+}
+
+void SecuritySystem::NotifyHomeKit() {
+  if (current_state_char_) current_state_char_->RaiseEvent();
+  if (target_state_char_)  target_state_char_->RaiseEvent();
+}
+
+StatusOr<std::string> SecuritySystem::GetInfo() const {
+  return mgos::SPrintf("cur:%d tgt:%d", current_state_, target_state_);
+}
+
+StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
+  return mgos::SPrintf(
+      R"({"id":%d,"current_state":%d,"target_state":%d})",
+      id(), current_state_, target_state_);
+}
+
+Status SecuritySystem::SetConfig(const std::string & /*config_json*/,
+                                  bool * /*restart_required*/) {
+  return Status::OK();
+}
+
+Status SecuritySystem::SetState(const std::string & /*state_json*/) {
+  return Status::OK();
+}
+
+}  // namespace hap
 }  // namespace shelly
