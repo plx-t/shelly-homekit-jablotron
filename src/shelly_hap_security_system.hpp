@@ -36,6 +36,7 @@ class SecuritySystem : public Component, public mgos::hap::Service {
   uint8_t target_state_  = 3;
   bool    pulse_in_progress_ = false;
   int     verify_retries_    = 0;
+  Input::HandlerID input_handler_id_ = Input::kInvalidHandlerID;
 
   static constexpr int kPulseMs   = 500;
   static constexpr int kVerifyMs  = 2000;
@@ -54,6 +55,7 @@ class SecuritySystem : public Component, public mgos::hap::Service {
   static void PulseEndCallback(void *arg);
   static void VerifyStateCallback(void *arg);
   void VerifyState();
+  
 };
 
 }  // namespace hap
