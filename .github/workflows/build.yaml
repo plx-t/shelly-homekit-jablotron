@@ -25,7 +25,8 @@ jobs:
       - name: Build
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
-          git submodule update --init --recursive
+          mkdir -p deps/modules
+          git clone --depth 1 https://github.com/cesanta/mongoose-os deps/modules/mongoose-os
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=$(git describe --tags --always 2>/dev/null || echo "custom")
         working-directory: ${{ github.workspace }}
       - name: Upload firmware artifacts
