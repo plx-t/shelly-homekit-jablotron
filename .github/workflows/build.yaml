@@ -26,7 +26,7 @@ jobs:
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
           mkdir -p deps/modules
-          git clone --depth 1 https://github.com/markirb/mongoose-os deps/modules/mongoose-os
+          git clone https://github.com/markirb/mongoose-os deps/modules/mongoose-os
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom || true
           # mos checks out master which lacks Makefile.build in platforms/esp32c3/
           # but the directory exists — create a symlink to fw/platforms/esp32c3/Makefile.build
