@@ -18,7 +18,7 @@ jobs:
          fetch-depth: 0
      - name: Install mos
        run: |
-          curl -fsSL https://mongoose-os.com/downloads/mos-linux64 -o /tmp/mos
+          curl -fsSL https://github.com/mongoose-os/mos/releases/latest/download/mos-linux64 -o /tmp/mos
           chmod +x /tmp/mos
           sudo mv /tmp/mos /usr/local/bin/mos
           mos version
