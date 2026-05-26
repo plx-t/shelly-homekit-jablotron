@@ -14,7 +14,7 @@ namespace hap {
 class SecuritySystem : public Component, public mgos::hap::Service {
  public:
   SecuritySystem(int id, Input *status_input, Output *arm_output,
-                 struct mgos_config_sw *cfg);
+                 uint16_t iid_base, struct mgos_config_sw *cfg);
   virtual ~SecuritySystem();
 
   // Component interface
@@ -55,7 +55,6 @@ class SecuritySystem : public Component, public mgos::hap::Service {
   static void PulseEndCallback(void *arg);
   static void VerifyStateCallback(void *arg);
   void VerifyState();
-  
 };
 
 }  // namespace hap
