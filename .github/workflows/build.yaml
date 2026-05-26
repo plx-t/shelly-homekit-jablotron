@@ -27,18 +27,10 @@ jobs:
           git config --global --add safe.directory $GITHUB_WORKSPACE
           mkdir -p deps/modules
           git clone --depth 1 https://github.com/cesanta/mongoose-os deps/modules/mongoose-os
-
-          # Run mos once to resolve all deps (will fail at make, that's ok)
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom || true
-
-          # mos re-checked out master on mongoose-os to a bad commit — fix it now
-          # before Docker runs on the second make call
-          cd deps/modules/mongoose-os
-          git fetch --unshallow || true
-          git log --oneline -5
-          ls platforms/esp32c3/ || echo "MISSING"
-          cd $GITHUB_WORKSPACE
-
+          # mos re-checked out master — create the missing path it needs
+          mkdir -p deps/modules/mongoose-os/platforms/esp32c3
+          cp deps/modules/mongoose-os/Makefile.build deps/modules/mongoose-os/platforms/esp32c3/Makefile.build
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom
         working-directory: ${{ github.workspace }}
       - name: Upload firmware artifacts
