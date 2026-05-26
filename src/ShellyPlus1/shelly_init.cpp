@@ -7,7 +7,7 @@
 #include "shelly_hap_security_system.hpp"
 #include "shelly_input_pin.hpp"
 #include "shelly_main.hpp"
-#include "shelly_output_pin.hpp"
+#include "shelly_output.hpp"
 #include "shelly_temp_sensor.hpp"
 
 namespace shelly {
