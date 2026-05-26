@@ -10,9 +10,9 @@ namespace shelly {
 namespace hap {
 
 SecuritySystem::SecuritySystem(int id, Input *status_input, Output *arm_output,
-                               struct mgos_config_sw *cfg)
+                               uint16_t iid_base, struct mgos_config_sw *cfg)
     : Component(id),
-      mgos::hap::Service(0x7E, &kHAPServiceType_SecuritySystem,
+      mgos::hap::Service(iid_base, &kHAPServiceType_SecuritySystem,
                          kHAPServiceDebugDescription_SecuritySystem),
       status_input_(status_input),
       arm_output_(arm_output),
@@ -39,7 +39,7 @@ Status SecuritySystem::Init() {
   target_state_ = IsArmed() ? 1 : 3;
 
   current_state_char_ = new mgos::hap::UInt8Characteristic(
-      iid() + 1, &kHAPCharacteristicType_SecuritySystemCurrentState,
+      svc_.iid + 1, &kHAPCharacteristicType_SecuritySystemCurrentState,
       0, 4, 1,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
              uint8_t *value) {
@@ -47,11 +47,12 @@ Status SecuritySystem::Init() {
         return kHAPError_None;
       },
       true,
-      nullptr);
+      nullptr,
+      kHAPCharacteristicDebugDescription_SecuritySystemCurrentState);
   AddChar(current_state_char_);
 
   target_state_char_ = new mgos::hap::UInt8Characteristic(
-      iid() + 2, &kHAPCharacteristicType_SecuritySystemTargetState,
+      svc_.iid + 2, &kHAPCharacteristicType_SecuritySystemTargetState,
       0, 3, 1,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
              uint8_t *value) {
@@ -73,7 +74,8 @@ Status SecuritySystem::Init() {
           SendPulse();
         }
         return kHAPError_None;
-      });
+      },
+      kHAPCharacteristicDebugDescription_SecuritySystemTargetState);
   AddChar(target_state_char_);
 
   input_handler_id_ = status_input_->AddHandler(
