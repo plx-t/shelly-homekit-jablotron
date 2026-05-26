@@ -1,44 +1,41 @@
 name: build-shelly-homekit
 on:
-  push:
-  pull_request:
+ push:
+ pull_request:
 jobs:
-  build:
-    name: Build ${{ matrix.model }}
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/markirb/mos:latest
-      volumes:
-        - /home/runner/work:/home/runner/work
-    strategy:
-      fail-fast: false
-      matrix:
-        model:
-          - Shelly1Gen3
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      - name: Build
-        run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-          make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom
-        working-directory: ${{ github.workspace }}
-      - name: Upload firmware artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ matrix.model }}
-          path: releases/**/shelly-homekit-${{ matrix.model }}.zip
-          if-no-files-found: warn
-  merge:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
-        with:
-           name: all-releases
-           pattern: release-*
+ build:
+   name: Build ${{ matrix.model }}
+   runs-on: ubuntu-latest
+   strategy:
+     fail-fast: false
+     matrix:
+       model:
+         - Shelly1Gen3
+   steps:
+     - name: Checkout code
+       uses: actions/checkout@v4
+       with:
+         fetch-depth: 0
+     - name: Install mos
+       run: |
+         sudo curl -fsSL https://mongoose-os.com/downloads/mos/install.sh | /bin/bash
+     - name: Build
+       run: |
+         git config --global --add safe.directory $GITHUB_WORKSPACE
+         make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom
+       working-directory: ${{ github.workspace }}
+     - name: Upload firmware artifacts
+       uses: actions/upload-artifact@v4
+       with:
+         name: release-${{ matrix.model }}
+         path: releases/**/shelly-homekit-${{ matrix.model }}.zip
+         if-no-files-found: warn
+ merge:
+   needs: build
+   runs-on: ubuntu-latest
+   steps:
+     - name: Merge Artifacts
+       uses: actions/upload-artifact/merge@v4
+       with:
+         name: all-releases
+         pattern: release-*
