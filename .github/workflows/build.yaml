@@ -26,10 +26,7 @@ jobs:
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
           mkdir -p deps/modules
-          git clone https://github.com/markirb/mongoose-os deps/modules/mongoose-os
-          # Pre-create the missing file before mos runs
-          cp .github/mongoose-os-esp32c3-Makefile.build \
-             deps/modules/mongoose-os/platforms/esp32c3/Makefile.build
+          git clone https://github.com/plx-t/mongoose-os deps/modules/mongoose-os
           make ${{ matrix.model }} LOCAL=1 RELEASE=1 RELEASE_SUFFIX=custom
         working-directory: ${{ github.workspace }}
       - name: Upload firmware artifacts
