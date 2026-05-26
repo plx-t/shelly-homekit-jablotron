@@ -1,11 +1,8 @@
 // src/ShellyPlus1/shelly_init.cpp
+// Shelly 1 G3 init for Jablotron 100 SecuritySystem integration.
 //
-// Shelly 1 G3 peripheral and component initialisation.
-// Modified for Jablotron 100 SecuritySystem integration.
-//
-// Hardware mapping (Shelly 1 G3 / ESP32-C3):
-//   GPIO 7  → SW input   ← JB-111N relay NO (closed = section armed)
-//   GPIO 26 → Relay      → JA-111H-AD input 2 (impulse toggle)
+// GPIO 7  → SW input  ← JB-111N relay NO (closed = section armed)
+// GPIO 26 → Relay     → JA-111H-AD input 2 (impulse toggle)
 
 #include "shelly_hap_security_system.hpp"
 #include "shelly_input_pin.hpp"
@@ -15,11 +12,10 @@
 
 namespace shelly {
 
-void CreatePeripherals(std::vector<std::unique_ptr<Input>>    *inputs,
-                       std::vector<std::unique_ptr<Output>>   *outputs,
+void CreatePeripherals(std::vector<std::unique_ptr<Input>>      *inputs,
+                       std::vector<std::unique_ptr<Output>>     *outputs,
                        std::vector<std::unique_ptr<PowerMeter>> *pms,
-                       std::unique_ptr<TempSensor>            *sys_temp) {
-
+                       std::unique_ptr<TempSensor>              *sys_temp) {
   outputs->emplace_back(new OutputPin(1, 26, 1));
 
   auto *in1 = new InputPin(1, 7, 1, MGOS_GPIO_PULL_UP, true);
@@ -34,7 +30,6 @@ void CreatePeripherals(std::vector<std::unique_ptr<Input>>    *inputs,
 void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
                       std::vector<std::unique_ptr<mgos::hap::Accessory>> *accs,
                       HAPAccessoryServerRef                               *server) {
-
   Input  *status_input = FindInput(1);
   Output *arm_output   = FindOutput(1);
 
@@ -52,11 +47,7 @@ void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
 
   acc->AddHAPService(&mgos::hap::kAccessoryInformationService);
 
-  auto *sec = new hap::SecuritySystem(
-      1,
-      status_input,
-      arm_output,
-      nullptr  /* mgos_config_sw* — unused, pass nullptr */);
+  auto *sec = new hap::SecuritySystem(1, status_input, arm_output, nullptr);
 
   sec->set_service_iid(2);
   acc->AddService(sec);
