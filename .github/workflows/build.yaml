@@ -19,6 +19,7 @@ jobs:
      - name: Install mos
        run: |
          sudo curl -fsSL https://mongoose-os.com/downloads/mos/install.sh | /bin/bash
+         echo "$HOME/mos_latest" >> $GITHUB_PATH
      - name: Build
        run: |
          git config --global --add safe.directory $GITHUB_WORKSPACE
