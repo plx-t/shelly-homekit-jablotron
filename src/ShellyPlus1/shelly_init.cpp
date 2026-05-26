@@ -42,12 +42,11 @@ void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
     return;
   }
 
-  auto *sec = new hap::SecuritySystem(1, in, out, nullptr);
-
-  const int id1 = 0;
-  uint16_t iid = SHELLY_HAP_IID_BASE_SWITCH +
-                 (SHELLY_HAP_IID_STEP_SWITCH * id1);
-  sec->set_iid(iid);
+  // Pass IID base via constructor — same pattern as MotionSensor, Lock, etc.
+  auto *sec = new hap::SecuritySystem(
+      1, in, out,
+      SHELLY_HAP_IID_BASE_SWITCH,
+      nullptr /* cfg */);
 
   auto st = sec->Init();
   if (!st.ok()) {
@@ -57,12 +56,12 @@ void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
   }
 
   auto *acc = new mgos::hap::Accessory(
-      SHELLY_HAP_AID_BASE_SWITCH + id1,
+      SHELLY_HAP_AID_BASE_SWITCH,
       kHAPAccessoryCategory_SecuritySystems,
       mgos_sys_config_get_sw1_name(),
       GetIdentifyCB(),
       svr);
-  acc->AddHAPService(&mgos::hap::kAccessoryInformationService);
+  acc->AddHAPService(&kHAPServiceType_AccessoryInformation);
   acc->AddService(sec);
 
   comps->emplace_back(sec);
