@@ -552,7 +552,7 @@ function findOrAddContainer(cd) {
         el(c, "hk_state_inverted_container").style.display = "block";
       }
       el(c, "sec_toggle_btn").onclick = function() {
-        let isArmed = (c.data.current_state < 3);
+        let isArmed = (c.data.state === true);
         setComponentState(c, {state: !isArmed}, el(c, "set_spinner"));
       };
       el(c, "save_btn").onclick = function() {
