@@ -43,8 +43,7 @@ void CreateComponents(std::vector<std::unique_ptr<Component>> *comps,
   }
 
   // Pass IID base via constructor — same pattern as MotionSensor, Lock, etc.
-  auto *sec = new hap::SecuritySystem(1, in, out, SHELLY_HAP_IID_BASE_SWITCH,
-                                      nullptr /* cfg */);
+  auto *sec = new hap::SecuritySystem(1, in, out, SHELLY_HAP_IID_BASE_SWITCH);
 
   auto st = sec->Init();
   if (!st.ok()) {

@@ -10,13 +10,12 @@ namespace shelly {
 namespace hap {
 
 SecuritySystem::SecuritySystem(int id, Input *status_input, Output *arm_output,
-                               uint16_t iid_base, struct mgos_config_sw *cfg)
+                               uint16_t iid_base)
     : Component(id),
       mgos::hap::Service(iid_base, &kHAPServiceType_SecuritySystem,
                          kHAPServiceDebugDescription_SecuritySystem),
       status_input_(status_input),
-      arm_output_(arm_output),
-      cfg_(cfg) {
+      arm_output_(arm_output) {
 }
 
 SecuritySystem::~SecuritySystem() {
