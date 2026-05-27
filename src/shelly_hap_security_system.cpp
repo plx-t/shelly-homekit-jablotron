@@ -34,6 +34,8 @@ std::string SecuritySystem::name() const {
 
 Status SecuritySystem::Init() {
   arm_output_->SetState(false, "init");
+  arm_output_->SetInvert(mgos_sys_config_get_sw1_out_inverted());
+  status_input_->SetInvert(mgos_sys_config_get_sw1_in_inverted());
   bool input_active = status_input_->GetState();
   UpdateCurrentState(input_active);
   target_state_ = IsArmed() ? 1 : 3;
@@ -176,8 +178,14 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
       (out_inv_tok.len > 0) ? (out_inv_tok.ptr[0] == 't' ? 1 : 0) : -1;
   if (name != nullptr) cfg->name = name;
   if (in_mode != -2) cfg->in_mode = in_mode;
-  if (in_inverted >= 0) cfg->in_inverted = in_inverted;
-  if (out_inverted >= 0) cfg->out_inverted = out_inverted;
+  if (in_inverted >= 0) {
+    cfg->in_inverted = in_inverted;
+    status_input_->SetInvert(in_inverted);
+  }
+  if (out_inverted >= 0) {
+    cfg->out_inverted = out_inverted;
+    arm_output_->SetInvert(out_inverted);
+  }
   if (svc_type != -2 && svc_type != cfg->svc_type) {
     cfg->svc_type = svc_type;
     if (restart_required) *restart_required = true;
