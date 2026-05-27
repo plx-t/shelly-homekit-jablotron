@@ -2,6 +2,9 @@
 // Jablotron 100 HomeKit SecuritySystem integration for Shelly 1 G3
 
 #include "shelly_hap_security_system.hpp"
+#include "mgos.hpp"
+#include "mgos_hap_chars.hpp"
+#include "mgos_sys_config.h"
 
 #include "mgos.hpp"
 #include "mgos_hap_chars.hpp"
