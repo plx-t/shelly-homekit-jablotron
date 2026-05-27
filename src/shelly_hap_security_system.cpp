@@ -34,7 +34,6 @@ std::string SecuritySystem::name() const {
 
 Status SecuritySystem::Init() {
   arm_output_->SetState(false, "init");
-
   bool input_active = status_input_->GetState();
   UpdateCurrentState(input_active);
   target_state_ = IsArmed() ? 1 : 3;
@@ -81,7 +80,6 @@ Status SecuritySystem::Init() {
   LOG(LL_INFO,
       ("SecuritySystem %d init: input=%s cur=%d tgt=%d", id(),
        input_active ? "ARMED" : "DISARMED", current_state_, target_state_));
-
   return Status::OK();
 }
 
@@ -161,6 +159,7 @@ StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
 }
 
 Status SecuritySystem::SetConfig(const std::string &config_json,
+                                 bool *restart_required) {
   LOG(LL_INFO, ("SetConfig: [%s]", config_json.c_str()));
   struct mgos_config_sw *cfg =
       (struct mgos_config_sw *) mgos_sys_config_get_sw1();
@@ -170,13 +169,14 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
              "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B,"
              " out_inverted: %B}",
              &name, &in_mode, &svc_type, &in_inverted, &out_inverted);
+  LOG(LL_INFO, ("SetConfig: in_inv=%d out_inv=%d", in_inverted, out_inverted));
   if (name != nullptr) cfg->name = name;
   if (in_mode != -2) cfg->in_mode = in_mode;
   if (in_inverted >= 0) cfg->in_inverted = in_inverted;
   if (out_inverted >= 0) cfg->out_inverted = out_inverted;
   if (svc_type != -2 && svc_type != cfg->svc_type) {
-  cfg->svc_type = svc_type;
-  if (restart_required) *restart_required = true;
+    cfg->svc_type = svc_type;
+    if (restart_required) *restart_required = true;
   }
   return mgos_sys_config_save(&mgos_sys_config, false, nullptr)
              ? Status::OK()
