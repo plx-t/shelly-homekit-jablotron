@@ -49,6 +49,7 @@
 #include "shelly_hap_input.hpp"
 #include "shelly_hap_lock.hpp"
 #include "shelly_hap_outlet.hpp"
+#include "shelly_hap_security_system.hpp"
 #include "shelly_hap_switch.hpp"
 #include "shelly_hap_temperature_sensor.hpp"
 #include "shelly_hap_valve.hpp"
@@ -239,6 +240,12 @@ void CreateHAPSwitch(int id, const struct mgos_config_sw *sw_cfg,
       cat = kHAPAccessoryCategory_Faucets;
       aid = SHELLY_HAP_AID_BASE_VALVE + id;
       sw.reset(new hap::Valve(id, in, out, pm, led_out, cfg));
+      break;
+    case 4:
+      cat = kHAPAccessoryCategory_SecuritySystems;
+      aid = SHELLY_HAP_AID_BASE_SWITCH + id;
+      sw.reset(
+          new hap::SecuritySystem(id, in, out, SHELLY_HAP_IID_BASE_SWITCH));
       break;
     default:
       sw.reset(new ShellySwitch(id, in, out, pm, led_out, cfg));
@@ -764,28 +771,28 @@ void InitApp() {
 
   // Initialize accessory server.
   HAPAccessoryServerOptions server_options = {
-    .maxPairings = kHAPPairingStorage_MinElements,
+      .maxPairings = kHAPPairingStorage_MinElements,
 #if HAP_IP
-    .ip =
-        {
-            .transport = &kHAPAccessoryServerTransport_IP,
+      .ip =
+          {
+              .transport = &kHAPAccessoryServerTransport_IP,
 #ifndef __clang__
-            .available = 0,
+              .available = 0,
 #endif
-            .accessoryServerStorage = &s_ip_storage,
-        },
+              .accessoryServerStorage = &s_ip_storage,
+          },
 #endif
 #if HAP_BLE
-    .ble =
-        {
-            .transport = nullptr,
+      .ble =
+          {
+              .transport = nullptr,
 #ifndef __clang__
-            .available = 0,
+              .available = 0,
 #endif
-            .accessoryServerStorage = nullptr,
-            .preferredAdvertisingInterval = 0,
-            .preferredNotificationDuration = 0,
-        },
+              .accessoryServerStorage = nullptr,
+              .preferredAdvertisingInterval = 0,
+              .preferredNotificationDuration = 0,
+          },
 #endif
   };
   static struct HAPPlatformMFiTokenAuth s_mfi_auth;

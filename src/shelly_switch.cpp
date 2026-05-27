@@ -123,7 +123,7 @@ Status ShellySwitch::SetConfig(const std::string &config_json,
     return mgos::Errorf(STATUS_INVALID_ARGUMENT, "invalid %s",
                         "name (too long, max 64)");
   }
-  if (cfg.svc_type < -1 || cfg.svc_type > 3) {
+  if (cfg.svc_type < -1 || cfg.svc_type > 4) {
     return mgos::Errorf(STATUS_INVALID_ARGUMENT, "invalid %s", "svc_type");
   }
   if ((cfg.svc_type != 3 && cfg.valve_type != -1) ||
