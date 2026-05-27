@@ -807,9 +807,9 @@ function updateComponent(cd) {
       }
       if (cd.svc_type == 4) {
         el(c, "state_container").style.display = "none";
+        el(c, "valve_type_container").style.display = "none";
         el(c, "auto_off_delay_container").style.display = "none";
         el(c, "in_mode_container").style.display = "none";
-        el(c, "in_inverted_container").style.display = "none";
         el(c, "initial_container").style.display = "none";
         el(c, "sec_state_container").style.display = "block";
       }
