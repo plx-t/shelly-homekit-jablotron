@@ -445,6 +445,11 @@
             <span class="slider round"></span>
           </label>
         </div>
+        <div class="form-control" id="sec_state_container" style="display: none">
+          <label>Status:</label>
+          <span id="sec_state"></span>
+          <button id="sec_toggle_btn" style="margin-left: 10px">Arm/Disarm</button>
+        </div>
         <div class="form-control" id="power_stats_container" style="display: none;">
           <label for="power_stats">Power:</label>
           <span id="power_stats"></span>
@@ -462,8 +467,8 @@
               <option id="svc_type_1" value="1">Outlet</option>
               <option id="svc_type_2" value="2">Lock</option>
               <option id="svc_type_3" value="3">Valve</option>
-            </select>
               <option id="svc_type_4" value="4">Security System</option>
+            </select>
           </div>
           <div class="form-control" id="hk_state_inverted_container" style="display: none">
             <label for="hk_state_inverted">HAP State Inverted:</label>

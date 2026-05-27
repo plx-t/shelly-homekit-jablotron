@@ -150,8 +150,9 @@ StatusOr<std::string> SecuritySystem::GetInfo() const {
 }
 
 StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
-  return mgos::SPrintf(R"({"id":%d,"current_state":%d,"target_state":%d})",
-                       id(), current_state_, target_state_);
+  return mgos::SPrintf(
+      R"({"id":%d,"current_state":%d,"target_state":%d,"state":%B})", id(),
+      current_state_, target_state_, current_state_ < 3);
 }
 
 Status SecuritySystem::SetConfig(const std::string & /*config_json*/,
@@ -159,7 +160,15 @@ Status SecuritySystem::SetConfig(const std::string & /*config_json*/,
   return Status::OK();
 }
 
-Status SecuritySystem::SetState(const std::string & /*state_json*/) {
+Status SecuritySystem::SetState(const std::string &state_json) {
+  int state = -1;
+  json_scanf(state_json.c_str(), state_json.size(), "{state: %B}", &state);
+  if (state < 0) return Status::OK();
+  bool want_armed = (state != 0);
+  bool is_armed = IsArmed();
+  target_state_ = want_armed ? 1 : 3;
+  if (want_armed != is_armed) SendPulse();
+  NotifyHomeKit();
   return Status::OK();
 }
 

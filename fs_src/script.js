@@ -551,6 +551,10 @@ function findOrAddContainer(cd) {
           cd.type == Component_Type.kOutlet) {
         el(c, "hk_state_inverted_container").style.display = "block";
       }
+      el(c, "sec_toggle_btn").onclick = function() {
+        let isArmed = (c.data.current_state < 3);
+        setComponentState(c, {state: !isArmed}, el(c, "set_spinner"));
+      };
       el(c, "save_btn").onclick = function() {
         swSetConfig(c);
       };
@@ -705,7 +709,14 @@ function updateComponent(cd) {
       }
       if (cd.svc_type !== undefined) {
         selectIfNotModified(el(c, "svc_type"), cd.svc_type);
-        if (cd.svc_type == 3) {
+        if (cd.svc_type == 4) {
+          el(c, "valve_type_container").style.display = "none";
+          el(c, "state_container").style.display = "none";
+          el(c, "sec_state_container").style.display = "block";
+          let secStateText = (cd.current_state < 3 ? "Armed (Away)" : "Disarmed");
+          updateInnerText(el(c, "sec_state"), secStateText);
+          updateInnerText(el(c, "sec_toggle_btn"), cd.current_state < 3 ? "Disarm" : "Arm");
+        } else if (cd.svc_type == 3) {
           selectIfNotModified(el(c, "valve_type"), cd.valve_type);
           el(c, "valve_type_container").style.display = "block";
           updateInnerText(el(c, "valve_type_label"), "Valve Type:");
