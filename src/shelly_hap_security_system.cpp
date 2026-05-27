@@ -152,19 +152,36 @@ StatusOr<std::string> SecuritySystem::GetInfo() const {
   return mgos::SPrintf("cur:%d tgt:%d", current_state_, target_state_);
 }
 StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
-  return mgos::SPrintf(
-      R"({"id":%d,"type":%d,"name":"%s","svc_type":4,"current_state":%d,"target_state":%d,"state":%s})",
+  return mgos::JSONPrintStringf(
+      "{id: %d, type: %d, name: %Q, svc_type: %d, hk_state_inverted: %B,"
+      " valve_type: %d, in_mode: %d, in_inverted: %B, initial: %d,"
+      " state: %B, auto_off: %B, auto_off_delay: %.3f, state_led_en: %d,"
+      " out_inverted: %B, hdim: %B}",
       id(), (int) type(),
       mgos_sys_config_get_sw1_name() ? mgos_sys_config_get_sw1_name()
                                      : "Shelly SW",
-      current_state_, target_state_, current_state_ < 3 ? "true" : "false");
+      4, false, -1, (int) mgos_sys_config_get_sw1_in_mode(), false,
+      (int) mgos_sys_config_get_sw1_initial_state(), current_state_ < 3, false,
+      0.0, -1, false, false);
 }
-
 Status SecuritySystem::SetConfig(const std::string & /*config_json*/,
-                                 bool * /*restart_required*/) {
-  return Status::OK();
+                                 bool *restart_required) {
+  struct mgos_config_sw *cfg = mgos_sys_config_get_sw1();
+  char *name = nullptr;
+  int in_mode = -2;
+  json_scanf(config_json.c_str(), config_json.size(), "{name: %Q, in_mode: %d}",
+             &name, &in_mode);
+  if (name != nullptr) {
+    cfg->name = name;
+  }
+  if (in_mode != -2) {
+    cfg->in_mode = in_mode;
+  }
+  (void) restart_required;
+  return mgos_sys_config_save(&mgos_sys_config, false, nullptr)
+             ? Status::OK()
+             : mgos::Errorf(STATUS_UNKNOWN, "failed to save config");
 }
-
 Status SecuritySystem::SetState(const std::string &state_json) {
   int state = -1;
   json_scanf(state_json.c_str(), state_json.size(), "{state: %B}", &state);
@@ -176,6 +193,5 @@ Status SecuritySystem::SetState(const std::string &state_json) {
   NotifyHomeKit();
   return Status::OK();
 }
-
 }  // namespace hap
 }  // namespace shelly
