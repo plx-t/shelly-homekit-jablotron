@@ -711,12 +711,24 @@ function updateComponent(cd) {
         selectIfNotModified(el(c, "svc_type"), cd.svc_type);
         if (cd.svc_type == 4) {
           el(c, "valve_type_container").style.display = "none";
+          el(c, "auto_off_container").style.display = "none";
+          el(c, "auto_off_delay_container").style.display = "none";
+          el(c, "hk_state_inverted_container").style.display = "none";
+          el(c, "in_mode_container").style.display = "none";
+          el(c, "initial_container").style.display = "none";
+          el(c, "auto_off_container").style.display = "none";
+          el(c, "auto_off_delay_container").style.display = "none";
+          el(c, "hk_state_inverted_container").style.display = "none";
           el(c, "state_container").style.display = "none";
           el(c, "auto_off_delay_container").style.display = "none";
           el(c, "hk_state_inverted_container").style.display = "none";
           el(c, "sec_state_container").style.display = "block";
           let secStateText = (cd.current_state < 3 ? "Armed (Away)" : "Disarmed");
           updateInnerText(el(c, "sec_state"), secStateText);
+          el(c, "sec_state").style.color = (cd.current_state < 3 ? "red" : "green");
+          updateInnerText(el(c, "sec_toggle_btn"), cd.current_state < 3 ? "Disarm" : "Arm");
+          el(c, "sec_toggle_btn").style.color = (cd.current_state < 3 ? "green" : "red");
+          el(c, "sec_toggle_btn").style.borderColor = (cd.current_state < 3 ? "green" : "red");
           updateInnerText(el(c, "sec_toggle_btn"), cd.current_state < 3 ? "Disarm" : "Arm");
         } else if (cd.svc_type == 3) {
           selectIfNotModified(el(c, "valve_type"), cd.valve_type);
