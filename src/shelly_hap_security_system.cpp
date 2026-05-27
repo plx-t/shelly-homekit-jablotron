@@ -105,10 +105,18 @@ void SecuritySystem::UpdateCurrentState(bool input_active) {
 }
 
 void SecuritySystem::SendPulse() {
+  LOG(LL_INFO, ("SendPulse: in_progress=%d armed=%d", pulse_in_progress_,
+                (int) IsArmed()));
   if (pulse_in_progress_) return;
   pulse_in_progress_ = true;
+  LOG(LL_INFO, ("SendPulse: activating relay"));
   arm_output_->SetState(true, "pulse");
   mgos_set_timer(kPulseMs, 0, PulseEndCallback, this);
+}
+if (pulse_in_progress_) return;
+pulse_in_progress_ = true;
+arm_output_->SetState(true, "pulse");
+mgos_set_timer(kPulseMs, 0, PulseEndCallback, this);
 }
 
 void SecuritySystem::PulseEndCallback(void *arg) {
@@ -187,9 +195,11 @@ Status SecuritySystem::SetState(const std::string &state_json) {
   bool want_armed = (state != 0);
   bool is_armed = IsArmed();
   target_state_ = want_armed ? 1 : 3;
+  LOG(LL_INFO, ("SetState: want_armed=%d is_armed=%d", (int) want_armed,
+                (int) is_armed));
+  LOG(LL_INFO, ("SetState: want=%d is=%d state_json=[%s]", (int) want_armed,
+                (int) is_armed, state_json.c_str()));
   if (want_armed != is_armed) SendPulse();
-  NotifyHomeKit();
-  return Status::OK();
 }
 
 }  // namespace hap
