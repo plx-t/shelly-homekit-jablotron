@@ -23,7 +23,7 @@ void CreatePeripherals(std::vector<std::unique_ptr<Input>> *inputs,
   outputs->emplace_back(new OutputPin(1, 26, 1));
 
   auto *in1 = new InputPin(1, 7, 1, MGOS_GPIO_PULL_UP, true);
-  in1->AddHandler(std::bind(&HandleInputResetSequence, in1, 26, _1, _2));
+  in1->AddHandler(std::bind(&HandleInputResetSequence, in1, LED_GPIO, _1, _2));
   in1->Init();
   inputs->emplace_back(in1);
 
@@ -42,23 +42,22 @@ void CreateComponents(std::vector<std::unique_ptr<Component>> *comps,
     return;
   }
 
-  // Pass IID base via constructor — same pattern as MotionSensor, Lock, etc.
-  auto *sec = new hap::SecuritySystem(1, in, out, SHELLY_HAP_IID_BASE_SWITCH);
-
+  std::unique_ptr<hap::SecuritySystem> sec(
+      new hap::SecuritySystem(1, in, out, SHELLY_HAP_IID_BASE_SWITCH));
   auto st = sec->Init();
   if (!st.ok()) {
-    LOG(LL_ERROR, ("SecuritySystem init: %s", st.ToString().c_str()));
-    delete sec;
+    LOG(LL_ERROR, ("SecuritySystem init failed: %s", st.ToString().c_str()));
     return;
   }
 
-  auto *acc = new mgos::hap::Accessory(
-      SHELLY_HAP_AID_BASE_SWITCH, kHAPAccessoryCategory_SecuritySystems,
-      mgos_sys_config_get_sw1_name(), GetIdentifyCB(), svr);
-  acc->AddService(sec);
+  hap::SecuritySystem *sec2 = sec.get();
+  comps->push_back(std::move(sec));
 
-  comps->emplace_back(sec);
-  accs->emplace_back(acc);
+  mgos::hap::Accessory *pri_acc = accs->front().get();
+  pri_acc->SetCategory(kHAPAccessoryCategory_SecuritySystems);
+  pri_acc->AddService(sec2);
+
+  (void) svr;
 }
 
 }  // namespace shelly
