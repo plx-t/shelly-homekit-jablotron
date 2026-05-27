@@ -709,7 +709,7 @@ function updateComponent(cd) {
       }
       if (cd.svc_type !== undefined) {
         selectIfNotModified(el(c, "svc_type"), cd.svc_type);
-        if (cd.svc_type == 4) {
+        if (cd.svc_type == 4 || cd.svc_type === "4") {
           el(c, "state_container").style.display = "none";
           el(c, "valve_type_container").style.display = "none";
           el(c, "auto_off_container").style.display = "none";
@@ -804,6 +804,14 @@ function updateComponent(cd) {
         slideIfNotModified(el(c, "brightness"), cd.brightness);
         setValueIfNotModified(el(c, "transition_time"), cd.transition_time);
         setPreviewColor(c, cd.bulb_type);
+      }
+      if (cd.svc_type == 4) {
+        el(c, "state_container").style.display = "none";
+        el(c, "auto_off_delay_container").style.display = "none";
+        el(c, "in_mode_container").style.display = "none";
+        el(c, "in_inverted_container").style.display = "none";
+        el(c, "initial_container").style.display = "none";
+        el(c, "sec_state_container").style.display = "block";
       }
       break;
     }
