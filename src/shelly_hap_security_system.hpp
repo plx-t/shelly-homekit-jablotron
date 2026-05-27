@@ -30,7 +30,6 @@ class SecuritySystem : public Component, public mgos::hap::Service {
  private:
   Input *status_input_;
   Output *arm_output_;
-  struct mgos_config_sw *cfg_;
 
   uint8_t current_state_ = 3;  // 3 = Disarmed
   uint8_t target_state_ = 3;
