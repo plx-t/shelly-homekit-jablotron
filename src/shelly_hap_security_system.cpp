@@ -166,3 +166,4 @@ Status SecuritySystem::SetState(const std::string & /*state_json*/) {
 
 }  // namespace hap
 }  // namespace shelly
+
