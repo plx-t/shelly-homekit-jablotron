@@ -39,33 +39,30 @@ Status SecuritySystem::Init() {
   target_state_ = IsArmed() ? 1 : 3;
 
   current_state_char_ = new mgos::hap::UInt8Characteristic(
-      svc_.iid + 1, &kHAPCharacteristicType_SecuritySystemCurrentState,
-      0, 4, 1,
+      svc_.iid + 1, &kHAPCharacteristicType_SecuritySystemCurrentState, 0, 4, 1,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
              uint8_t *value) {
         *value = current_state_;
         return kHAPError_None;
       },
-      true,
-      nullptr,
+      true, nullptr,
       kHAPCharacteristicDebugDescription_SecuritySystemCurrentState);
   AddChar(current_state_char_);
 
   target_state_char_ = new mgos::hap::UInt8Characteristic(
-      svc_.iid + 2, &kHAPCharacteristicType_SecuritySystemTargetState,
-      0, 3, 1,
+      svc_.iid + 2, &kHAPCharacteristicType_SecuritySystemTargetState, 0, 3, 1,
       [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicReadRequest *,
              uint8_t *value) {
         *value = target_state_;
         return kHAPError_None;
       },
       true,
-      [this](HAPAccessoryServerRef *, const HAPUInt8CharacteristicWriteRequest *,
-             uint8_t value) {
+      [this](HAPAccessoryServerRef *,
+             const HAPUInt8CharacteristicWriteRequest *, uint8_t value) {
         if (value > 3) return kHAPError_InvalidData;
         bool want_armed = (value < 3);
-        bool is_armed   = IsArmed();
-        target_state_   = value;
+        bool is_armed = IsArmed();
+        target_state_ = value;
         verify_retries_ = 0;
         if (want_armed == is_armed) {
           if (is_armed && current_state_ != value) current_state_ = value;
@@ -82,8 +79,8 @@ Status SecuritySystem::Init() {
       [this](Input::Event ev, bool state) { OnInputChanged(ev, state); });
 
   LOG(LL_INFO,
-      ("SecuritySystem %d init: input=%s cur=%d tgt=%d",
-       id(), input_active ? "ARMED" : "DISARMED", current_state_, target_state_));
+      ("SecuritySystem %d init: input=%s cur=%d tgt=%d", id(),
+       input_active ? "ARMED" : "DISARMED", current_state_, target_state_));
 
   return Status::OK();
 }
@@ -99,7 +96,8 @@ void SecuritySystem::OnInputChanged(Input::Event ev, bool state) {
     target_state_ = 1;
   }
   NotifyHomeKit();
-  LOG(LL_INFO, ("SecuritySystem %d: state %d->%d", id(), old_state, current_state_));
+  LOG(LL_INFO,
+      ("SecuritySystem %d: state %d->%d", id(), old_state, current_state_));
 }
 
 void SecuritySystem::UpdateCurrentState(bool input_active) {
@@ -138,14 +136,14 @@ void SecuritySystem::VerifyState() {
     SendPulse();
   } else {
     verify_retries_ = 0;
-    target_state_   = IsArmed() ? 1 : 3;
+    target_state_ = IsArmed() ? 1 : 3;
     NotifyHomeKit();
   }
 }
 
 void SecuritySystem::NotifyHomeKit() {
   if (current_state_char_) current_state_char_->RaiseEvent();
-  if (target_state_char_)  target_state_char_->RaiseEvent();
+  if (target_state_char_) target_state_char_->RaiseEvent();
 }
 
 StatusOr<std::string> SecuritySystem::GetInfo() const {
@@ -153,13 +151,12 @@ StatusOr<std::string> SecuritySystem::GetInfo() const {
 }
 
 StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
-  return mgos::SPrintf(
-      R"({"id":%d,"current_state":%d,"target_state":%d})",
-      id(), current_state_, target_state_);
+  return mgos::SPrintf(R"({"id":%d,"current_state":%d,"target_state":%d})",
+                       id(), current_state_, target_state_);
 }
 
 Status SecuritySystem::SetConfig(const std::string & /*config_json*/,
-                                  bool * /*restart_required*/) {
+                                 bool * /*restart_required*/) {
   return Status::OK();
 }
 

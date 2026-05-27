@@ -16,10 +16,10 @@
 
 namespace shelly {
 
-void CreatePeripherals(std::vector<std::unique_ptr<Input>>      *inputs,
-                       std::vector<std::unique_ptr<Output>>     *outputs,
+void CreatePeripherals(std::vector<std::unique_ptr<Input>> *inputs,
+                       std::vector<std::unique_ptr<Output>> *outputs,
                        std::vector<std::unique_ptr<PowerMeter>> *pms,
-                       std::unique_ptr<TempSensor>              *sys_temp) {
+                       std::unique_ptr<TempSensor> *sys_temp) {
   outputs->emplace_back(new OutputPin(1, 26, 1));
 
   auto *in1 = new InputPin(1, 7, 1, MGOS_GPIO_PULL_UP, true);
@@ -31,10 +31,10 @@ void CreatePeripherals(std::vector<std::unique_ptr<Input>>      *inputs,
   (void) sys_temp;
 }
 
-void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
+void CreateComponents(std::vector<std::unique_ptr<Component>> *comps,
                       std::vector<std::unique_ptr<mgos::hap::Accessory>> *accs,
-                      HAPAccessoryServerRef                               *svr) {
-  Input  *in  = FindInput(1);
+                      HAPAccessoryServerRef *svr) {
+  Input *in = FindInput(1);
   Output *out = FindOutput(1);
 
   if (!in || !out) {
@@ -43,10 +43,8 @@ void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
   }
 
   // Pass IID base via constructor — same pattern as MotionSensor, Lock, etc.
-  auto *sec = new hap::SecuritySystem(
-      1, in, out,
-      SHELLY_HAP_IID_BASE_SWITCH,
-      nullptr /* cfg */);
+  auto *sec = new hap::SecuritySystem(1, in, out, SHELLY_HAP_IID_BASE_SWITCH,
+                                      nullptr /* cfg */);
 
   auto st = sec->Init();
   if (!st.ok()) {
@@ -56,11 +54,8 @@ void CreateComponents(std::vector<std::unique_ptr<Component>>            *comps,
   }
 
   auto *acc = new mgos::hap::Accessory(
-      SHELLY_HAP_AID_BASE_SWITCH,
-      kHAPAccessoryCategory_SecuritySystems,
-      mgos_sys_config_get_sw1_name(),
-      GetIdentifyCB(),
-      svr);
+      SHELLY_HAP_AID_BASE_SWITCH, kHAPAccessoryCategory_SecuritySystems,
+      mgos_sys_config_get_sw1_name(), GetIdentifyCB(), svr);
   acc->AddService(sec);
 
   comps->emplace_back(sec);

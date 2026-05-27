@@ -33,24 +33,28 @@ class SecuritySystem : public Component, public mgos::hap::Service {
   struct mgos_config_sw *cfg_;
 
   uint8_t current_state_ = 3;  // 3 = Disarmed
-  uint8_t target_state_  = 3;
-  bool    pulse_in_progress_ = false;
-  int     verify_retries_    = 0;
+  uint8_t target_state_ = 3;
+  bool pulse_in_progress_ = false;
+  int verify_retries_ = 0;
   Input::HandlerID input_handler_id_ = Input::kInvalidHandlerID;
 
-  static constexpr int kPulseMs   = 500;
-  static constexpr int kVerifyMs  = 2000;
+  static constexpr int kPulseMs = 500;
+  static constexpr int kVerifyMs = 2000;
   static constexpr int kMaxRetries = 3;
 
   mgos::hap::UInt8Characteristic *current_state_char_ = nullptr;
-  mgos::hap::UInt8Characteristic *target_state_char_  = nullptr;
+  mgos::hap::UInt8Characteristic *target_state_char_ = nullptr;
 
   void OnInputChanged(Input::Event ev, bool state);
   void UpdateCurrentState(bool input_active);
   void SendPulse();
   void NotifyHomeKit();
-  bool IsArmed() const { return current_state_ < 3; }
-  bool WantsArmed() const { return target_state_ < 3; }
+  bool IsArmed() const {
+    return current_state_ < 3;
+  }
+  bool WantsArmed() const {
+    return target_state_ < 3;
+  }
 
   static void PulseEndCallback(void *arg);
   static void VerifyStateCallback(void *arg);
