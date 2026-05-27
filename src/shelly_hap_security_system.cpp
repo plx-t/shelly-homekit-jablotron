@@ -153,9 +153,11 @@ StatusOr<std::string> SecuritySystem::GetInfo() const {
 }
 StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
   return mgos::SPrintf(
-      R"({"id":%d,"type":%d,"svc_type":4,"current_state":%d,"target_state":%d,"state":%s})",
-      id(), (int) type(), current_state_, target_state_,
-      current_state_ < 3 ? "true" : "false");
+      R"({"id":%d,"type":%d,"name":"%s","svc_type":4,"current_state":%d,"target_state":%d,"state":%s})",
+      id(), (int) type(),
+      mgos_sys_config_get_sw1_name() ? mgos_sys_config_get_sw1_name()
+                                     : "Shelly SW",
+      current_state_, target_state_, current_state_ < 3 ? "true" : "false");
 }
 
 Status SecuritySystem::SetConfig(const std::string & /*config_json*/,
