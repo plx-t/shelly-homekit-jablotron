@@ -161,7 +161,7 @@ StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
 }
 
 Status SecuritySystem::SetConfig(const std::string &config_json,
-                                 bool *restart_required) {
+  LOG(LL_INFO, ("SetConfig: [%s]", config_json.c_str()));
   struct mgos_config_sw *cfg =
       (struct mgos_config_sw *) mgos_sys_config_get_sw1();
   char *name = nullptr;
@@ -175,8 +175,8 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
   if (in_inverted >= 0) cfg->in_inverted = in_inverted;
   if (out_inverted >= 0) cfg->out_inverted = out_inverted;
   if (svc_type != -2 && svc_type != cfg->svc_type) {
-    cfg->svc_type = svc_type;
-    if (restart_required) *restart_required = true;
+  cfg->svc_type = svc_type;
+  if (restart_required) *restart_required = true;
   }
   return mgos_sys_config_save(&mgos_sys_config, false, nullptr)
              ? Status::OK()
