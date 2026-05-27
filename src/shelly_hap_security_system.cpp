@@ -160,16 +160,20 @@ StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
 
 Status SecuritySystem::SetConfig(const std::string &config_json,
                                  bool *restart_required) {
-  LOG(LL_INFO, ("SetConfig: [%s]", config_json.c_str()));
   struct mgos_config_sw *cfg =
       (struct mgos_config_sw *) mgos_sys_config_get_sw1();
   char *name = nullptr;
-  int in_mode = -2, svc_type = -2, in_inverted = -1, out_inverted = -1;
+  int in_mode = -2, svc_type = -2;
+  struct json_token in_inv_tok = JSON_INVALID_TOKEN;
+  struct json_token out_inv_tok = JSON_INVALID_TOKEN;
   json_scanf(config_json.c_str(), config_json.size(),
-             "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B,"
-             " out_inverted: %B}",
-             &name, &in_mode, &svc_type, &in_inverted, &out_inverted);
-  LOG(LL_INFO, ("SetConfig: in_inv=%d out_inv=%d", in_inverted, out_inverted));
+             "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %T,"
+             " out_inverted: %T}",
+             &name, &in_mode, &svc_type, &in_inv_tok, &out_inv_tok);
+  int in_inverted =
+      (in_inv_tok.len > 0) ? (in_inv_tok.ptr[0] == 't' ? 1 : 0) : -1;
+  int out_inverted =
+      (out_inv_tok.len > 0) ? (out_inv_tok.ptr[0] == 't' ? 1 : 0) : -1;
   if (name != nullptr) cfg->name = name;
   if (in_mode != -2) cfg->in_mode = in_mode;
   if (in_inverted >= 0) cfg->in_inverted = in_inverted;
