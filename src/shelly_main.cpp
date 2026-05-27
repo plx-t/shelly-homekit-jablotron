@@ -241,12 +241,22 @@ void CreateHAPSwitch(int id, const struct mgos_config_sw *sw_cfg,
       aid = SHELLY_HAP_AID_BASE_VALVE + id;
       sw.reset(new hap::Valve(id, in, out, pm, led_out, cfg));
       break;
-    case 4:
-      cat = kHAPAccessoryCategory_SecuritySystems;
-      aid = SHELLY_HAP_AID_BASE_SWITCH + id;
-      sw.reset(
+    case 4: {
+      std::unique_ptr<hap::SecuritySystem> sec(
           new hap::SecuritySystem(id, in, out, SHELLY_HAP_IID_BASE_SWITCH));
-      break;
+      auto st = sec->Init();
+      if (!st.ok()) {
+        LOG(LL_ERROR,
+            ("SecuritySystem init failed: %s", st.ToString().c_str()));
+        return;
+      }
+      hap::SecuritySystem *sec2 = sec.get();
+      comps->push_back(std::move(sec));
+      mgos::hap::Accessory *pri_acc = accs->front().get();
+      pri_acc->SetCategory(kHAPAccessoryCategory_SecuritySystems);
+      pri_acc->AddService(sec2);
+      return;
+    }
     default:
       sw.reset(new ShellySwitch(id, in, out, pm, led_out, cfg));
       sw_hidden = true;
