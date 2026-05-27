@@ -61,7 +61,7 @@ Status SecuritySystem::Init() {
         if (value > 3) return kHAPError_InvalidData;
         bool want_armed = (value < 3);
         bool is_armed = IsArmed();
-        target_state_ = value;
+        target_state_ = (value < 3) ? 1 : 3;
         verify_retries_ = 0;
         if (want_armed == is_armed) {
           if (is_armed && current_state_ != value) current_state_ = value;
@@ -101,7 +101,7 @@ void SecuritySystem::OnInputChanged(Input::Event ev, bool state) {
 
 void SecuritySystem::UpdateCurrentState(bool input_active) {
   if (input_active) {
-    current_state_ = (target_state_ < 3) ? target_state_ : 1;
+    current_state_ = 1;
   } else {
     current_state_ = 3;
   }
@@ -165,4 +165,3 @@ Status SecuritySystem::SetState(const std::string & /*state_json*/) {
 
 }  // namespace hap
 }  // namespace shelly
-
