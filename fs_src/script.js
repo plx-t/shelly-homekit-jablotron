@@ -722,9 +722,9 @@ function updateComponent(cd) {
           updateInnerText(el(c, "sec_state"), secStateText);
           el(c, "sec_state").style.color = (cd.current_state < 3 ? "red" : "green");
           updateInnerText(el(c, "sec_toggle_btn"), cd.current_state < 3 ? "Disarm" : "Arm");
-          el(c, "sec_toggle_btn").style.color = (cd.current_state < 3 ? "green" : "red");
-          el(c, "sec_toggle_btn").style.borderColor = (cd.current_state < 3 ? "green" : "red");
-        } else if (cd.svc_type == 3) {
+          el(c, "sec_toggle_btn").style.backgroundColor = (cd.current_state < 3 ? "green" : "red");
+          el(c, "sec_toggle_btn").style.color = "white";
+          el(c, "sec_toggle_btn").style.border = "none";
           selectIfNotModified(el(c, "valve_type"), cd.valve_type);
           el(c, "valve_type_container").style.display = "block";
           updateInnerText(el(c, "valve_type_label"), "Valve Type:");

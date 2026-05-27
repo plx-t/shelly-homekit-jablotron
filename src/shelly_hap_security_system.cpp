@@ -180,16 +180,17 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
 }
 
 Status SecuritySystem::SetState(const std::string &state_json) {
-  int state = -1;
+  LOG(LL_INFO, ("SetState: %s", state_json.c_str()));
   json_scanf(state_json.c_str(), state_json.size(), "{state: {state: %B}}",
              &state);
-  if (state < 0) return Status::OK();
-  bool want_armed = (state != 0);
-  bool is_armed = IsArmed();
-  target_state_ = want_armed ? 1 : 3;
-  if (want_armed != is_armed) SendPulse();
-  NotifyHomeKit();
-  return Status::OK();
+             &state);
+             if (state < 0) return Status::OK();
+             bool want_armed = (state != 0);
+             bool is_armed = IsArmed();
+             target_state_ = want_armed ? 1 : 3;
+             if (want_armed != is_armed) SendPulse();
+             NotifyHomeKit();
+             return Status::OK();
 }
 
 }  // namespace hap
