@@ -164,16 +164,16 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
   struct mgos_config_sw *cfg =
       (struct mgos_config_sw *) mgos_sys_config_get_sw1();
   char *name = nullptr;
-  int in_mode = -2;
-  json_scanf(config_json.c_str(), config_json.size(), "{name: %Q, in_mode: %d}",
-             &name, &in_mode);
-  if (name != nullptr) {
-    cfg->name = name;
+  int in_mode = -2, svc_type = -2;
+  json_scanf(config_json.c_str(), config_json.size(),
+             "{name: %Q, in_mode: %d, svc_type: %d}", &name, &in_mode,
+             &svc_type);
+  if (name != nullptr) cfg->name = name;
+  if (in_mode != -2) cfg->in_mode = in_mode;
+  if (svc_type != -2 && svc_type != cfg->svc_type) {
+    cfg->svc_type = svc_type;
+    if (restart_required) *restart_required = true;
   }
-  if (in_mode != -2) {
-    cfg->in_mode = in_mode;
-  }
-  (void) restart_required;
   return mgos_sys_config_save(&mgos_sys_config, false, nullptr)
              ? Status::OK()
              : mgos::Errorf(STATUS_UNKNOWN, "failed to save config");
@@ -181,7 +181,8 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
 
 Status SecuritySystem::SetState(const std::string &state_json) {
   int state = -1;
-  json_scanf(state_json.c_str(), state_json.size(), "{state: %B}", &state);
+  json_scanf(state_json.c_str(), state_json.size(), "{state: {state: %B}}",
+             &state);
   if (state < 0) return Status::OK();
   bool want_armed = (state != 0);
   bool is_armed = IsArmed();

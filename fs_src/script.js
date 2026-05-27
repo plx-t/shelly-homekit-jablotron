@@ -712,6 +712,8 @@ function updateComponent(cd) {
         if (cd.svc_type == 4) {
           el(c, "valve_type_container").style.display = "none";
           el(c, "state_container").style.display = "none";
+          el(c, "auto_off_delay_container").style.display = "none";
+          el(c, "hk_state_inverted_container").style.display = "none";
           el(c, "sec_state_container").style.display = "block";
           let secStateText = (cd.current_state < 3 ? "Armed (Away)" : "Disarmed");
           updateInnerText(el(c, "sec_state"), secStateText);
