@@ -553,7 +553,7 @@ function findOrAddContainer(cd) {
       }
       el(c, "sec_toggle_btn").onclick = function() {
         let isArmed = (c.data.state === true);
-        setComponentState(c, {state: !isArmed}, el(c, "set_spinner"));
+        setComponentState(c, {state: {state: !isArmed}}, el(c, "set_spinner"));
       };
       el(c, "save_btn").onclick = function() {
         swSetConfig(c);

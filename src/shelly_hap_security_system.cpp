@@ -182,13 +182,7 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
 Status SecuritySystem::SetState(const std::string &state_json) {
   LOG(LL_INFO, ("SetState: [%s]", state_json.c_str()));
   int state = -1;
-  if (state_json == "true" || state_json == "1") {
-    state = 1;
-  } else if (state_json == "false" || state_json == "0") {
-    state = 0;
-  } else {
-    json_scanf(state_json.c_str(), state_json.size(), "{state: %B}", &state);
-  }
+  json_scanf(state_json.c_str(), state_json.size(), "{state: %B}", &state);
   if (state < 0) return Status::OK();
   bool want_armed = (state != 0);
   bool is_armed = IsArmed();
