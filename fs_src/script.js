@@ -718,11 +718,11 @@ function updateComponent(cd) {
           el(c, "in_mode_container").style.display = "none";
           el(c, "initial_container").style.display = "none";
           el(c, "sec_state_container").style.display = "block";
-          let secStateText = (cd.current_state < 3 ? "Armed (Away)" : "Disarmed");
+          let secStateText = (cd.state === true ? "Armed (Away)" : "Disarmed");
           updateInnerText(el(c, "sec_state"), secStateText);
-          el(c, "sec_state").style.color = (cd.current_state < 3 ? "red" : "green");
-          updateInnerText(el(c, "sec_toggle_btn"), cd.current_state < 3 ? "Disarm" : "Arm");
-          el(c, "sec_toggle_btn").style.backgroundColor = (cd.current_state < 3 ? "green" : "red");
+          el(c, "sec_state").style.color = (cd.state === true ? "red" : "green");
+          updateInnerText(el(c, "sec_toggle_btn"), cd.state === true ? "Disarm" : "Arm");
+          el(c, "sec_toggle_btn").style.backgroundColor = (cd.state === true ? "green" : "red");
           el(c, "sec_toggle_btn").style.color = "white";
           el(c, "sec_toggle_btn").style.border = "none";
           selectIfNotModified(el(c, "valve_type"), cd.valve_type);
