@@ -23,6 +23,14 @@ jobs:
           docker cp mos-extract:/usr/bin/mos /usr/local/bin/mos
           docker rm mos-extract
           mos version
+      - name: Format code
+        run: |
+          sudo apt-get install -y clang-format
+          for d in src lib* fs_src; do
+            find $d -name "*.cpp" -o -name "*.hpp" -o -name "script.js" | \
+              xargs clang-format -i
+          done
+        working-directory: ${{ github.workspace }}
       - name: Build
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
