@@ -1,7 +1,6 @@
-json_scanf(
-    config_json.c_str(), config_json.size(),
-    "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B, out_inverted: %B}",
-    &name, &in_mode, &svc_type, &in_inverted, &out_inverted);
+// src/shelly_hap_security_system.cpp
+// Jablotron 100 HomeKit SecuritySystem integration for Shelly 1 G3
+
 #include "shelly_hap_security_system.hpp"
 
 #include "mgos.hpp"
@@ -106,11 +105,8 @@ void SecuritySystem::UpdateCurrentState(bool input_active) {
 }
 
 void SecuritySystem::SendPulse() {
-  LOG(LL_INFO, ("SendPulse: in_progress=%d armed=%d", (int) pulse_in_progress_,
-                (int) IsArmed()));
   if (pulse_in_progress_) return;
   pulse_in_progress_ = true;
-  LOG(LL_INFO, ("SendPulse: activating relay"));
   arm_output_->SetState(true, "pulse");
   mgos_set_timer(kPulseMs, 0, PulseEndCallback, this);
 }
@@ -158,9 +154,10 @@ StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
       " state: %B, auto_off: %B, auto_off_delay: %.3f, state_led_en: %d,"
       " out_inverted: %B, hdim: %B}",
       id(), (int) type(), (n ? n : "Security System"), 4, false, -1,
-      (int) mgos_sys_config_get_sw1_in_mode(), false,
+      (int) mgos_sys_config_get_sw1_in_mode(),
+      (bool) mgos_sys_config_get_sw1_in_inverted(),
       (int) mgos_sys_config_get_sw1_initial_state(), current_state_ < 3, false,
-      0.0, -1, false, false);
+      0.0, -1, (bool) mgos_sys_config_get_sw1_out_inverted(), false);
 }
 
 Status SecuritySystem::SetConfig(const std::string &config_json,
@@ -170,8 +167,8 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
   char *name = nullptr;
   int in_mode = -2, svc_type = -2, in_inverted = -1, out_inverted = -1;
   json_scanf(config_json.c_str(), config_json.size(),
-             "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B, "
-             "out_inverted: %B}",
+             "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B,"
+             " out_inverted: %B}",
              &name, &in_mode, &svc_type, &in_inverted, &out_inverted);
   if (name != nullptr) cfg->name = name;
   if (in_mode != -2) cfg->in_mode = in_mode;
@@ -185,7 +182,9 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
              ? Status::OK()
              : mgos::Errorf(STATUS_UNKNOWN, "failed to save config");
 }
+
 Status SecuritySystem::SetState(const std::string &state_json) {
+  int state = -1;
   struct json_token state_tok = JSON_INVALID_TOKEN;
   json_scanf(state_json.c_str(), state_json.size(), "{state: {state: %T}}",
              &state_tok);
@@ -193,12 +192,11 @@ Status SecuritySystem::SetState(const std::string &state_json) {
   if (state < 0) return Status::OK();
   bool want_armed = (state != 0);
   bool is_armed = IsArmed();
-  LOG(LL_INFO, ("SetState: want=%d is=%d", (int) want_armed, (int) is_armed));
   target_state_ = want_armed ? 1 : 3;
   if (want_armed != is_armed) SendPulse();
   NotifyHomeKit();
   return Status::OK();
 }
 
-char *name = nullptr;
-int in_mode = -2, svc_type = -2, in_inverted = -1, out_inverted = -1;
+}  // namespace hap
+}  // namespace shelly
