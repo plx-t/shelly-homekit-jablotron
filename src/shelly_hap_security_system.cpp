@@ -1,6 +1,7 @@
-// src/shelly_hap_security_system.cpp
-// Jablotron 100 HomeKit SecuritySystem integration for Shelly 1 G3
-
+json_scanf(
+    config_json.c_str(), config_json.size(),
+    "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B, out_inverted: %B}",
+    &name, &in_mode, &svc_type, &in_inverted, &out_inverted);
 #include "shelly_hap_security_system.hpp"
 
 #include "mgos.hpp"
@@ -167,12 +168,15 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
   struct mgos_config_sw *cfg =
       (struct mgos_config_sw *) mgos_sys_config_get_sw1();
   char *name = nullptr;
-  int in_mode = -2, svc_type = -2;
+  int in_mode = -2, svc_type = -2, in_inverted = -1, out_inverted = -1;
   json_scanf(config_json.c_str(), config_json.size(),
-             "{name: %Q, in_mode: %d, svc_type: %d}", &name, &in_mode,
-             &svc_type);
+             "{name: %Q, in_mode: %d, svc_type: %d, in_inverted: %B, "
+             "out_inverted: %B}",
+             &name, &in_mode, &svc_type, &in_inverted, &out_inverted);
   if (name != nullptr) cfg->name = name;
   if (in_mode != -2) cfg->in_mode = in_mode;
+  if (in_inverted >= 0) cfg->in_inverted = in_inverted;
+  if (out_inverted >= 0) cfg->out_inverted = out_inverted;
   if (svc_type != -2 && svc_type != cfg->svc_type) {
     cfg->svc_type = svc_type;
     if (restart_required) *restart_required = true;
@@ -181,9 +185,7 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
              ? Status::OK()
              : mgos::Errorf(STATUS_UNKNOWN, "failed to save config");
 }
-
 Status SecuritySystem::SetState(const std::string &state_json) {
-  int state = -1;
   struct json_token state_tok = JSON_INVALID_TOKEN;
   json_scanf(state_json.c_str(), state_json.size(), "{state: {state: %T}}",
              &state_tok);
@@ -198,5 +200,5 @@ Status SecuritySystem::SetState(const std::string &state_json) {
   return Status::OK();
 }
 
-}  // namespace hap
-}  // namespace shelly
+char *name = nullptr;
+int in_mode = -2, svc_type = -2, in_inverted = -1, out_inverted = -1;
