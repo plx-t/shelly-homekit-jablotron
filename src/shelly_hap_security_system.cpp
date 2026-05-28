@@ -162,6 +162,7 @@ StatusOr<std::string> SecuritySystem::GetInfoJSON() const {
 
 Status SecuritySystem::SetConfig(const std::string &config_json,
                                  bool *restart_required) {
+  LOG(LL_INFO, ("SetConfig called: [%s]", config_json.c_str()));
   struct mgos_config_sw *cfg =
       (struct mgos_config_sw *) mgos_sys_config_get_sw1();
   char *name = nullptr;
@@ -176,11 +177,15 @@ Status SecuritySystem::SetConfig(const std::string &config_json,
       (in_inv_tok.len > 0) ? (in_inv_tok.ptr[0] == 't' ? 1 : 0) : -1;
   int out_inverted =
       (out_inv_tok.len > 0) ? (out_inv_tok.ptr[0] == 't' ? 1 : 0) : -1;
+  LOG(LL_INFO, ("SetConfig: in_inv=%d out_inv=%d", in_inverted, out_inverted));
   if (name != nullptr) cfg->name = name;
   if (in_mode != -2) cfg->in_mode = in_mode;
   if (in_inverted >= 0) {
     cfg->in_inverted = in_inverted;
     status_input_->SetInvert(in_inverted);
+    bool input_active = status_input_->GetState();
+    UpdateCurrentState(input_active);
+    NotifyHomeKit();
   }
   if (out_inverted >= 0) {
     cfg->out_inverted = out_inverted;
