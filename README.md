@@ -9,6 +9,63 @@ Firmware is compatible with stock and can be uploaded via OTA (Watch a 2 minute 
 
 Reverting to stock firmware is also possible [see here](https://github.com/mongoose-os-apps/shelly-homekit/wiki/Flashing#reverting-to-stock-firmware).
 
+---
+
+## Jablotron 100 HomeKit Security System Integration
+
+This fork adds a **Security System** HAP service type for integrating a [Jablotron 100](https://www.jablotron.com/) alarm panel with Apple HomeKit using a **Shelly 1 Gen3**.
+
+### How it works
+
+The Shelly 1 G3 connects to two Jablotron bus modules:
+
+| Jablotron Module | Role | Shelly Connection |
+|---|---|---|
+| **JB-111N** (BUS relay) | Reports armed/disarmed state | SW input (GPIO 10) |
+| **JA-111H-AD TRB** (BUS relay receiver) | Receives arm/disarm impulse | Relay output (GPIO 5) |
+
+When you arm or disarm via HomeKit (or the web UI), the Shelly sends a **500ms pulse** to the JA-111H-AD, which toggles the Jablotron alarm state. The JB-111N input reports the current armed state back to HomeKit in real time.
+
+### Wiring
+
+```
+Jablotron JB-111N (NO output) → Shelly SW input
+Shelly relay (NO) → Jablotron JA-111H-AD TRB input
+```
+
+Use **COM/NO** on JB-111N for the Shelly SW input (or COM/NC with Inverted Input enabled in the web UI).
+
+### Configuration
+
+1. Flash the firmware to a **Shelly 1 Gen3**
+2. Open the Shelly web UI
+3. In the **Switch 1** component, set **HAP Service Type** to **Security System**
+4. Set a name (e.g. "Jablotron")
+5. Click **Save** — the device will reboot and appear as a Security System in HomeKit
+
+### Web UI
+
+The Security System component shows:
+- **Status**: Armed (Away) / Disarmed with color coding (red/green)
+- **Arm / Disarm button**: triggers a 500ms relay pulse
+- **Inverted Input**: flip logic if using COM/NC on JB-111N
+- **Name** and **HAP Service Type** fields
+
+### HomeKit behavior
+
+| HomeKit State | Meaning |
+|---|---|
+| Disarmed | JB-111N contact open (alarm off) |
+| Away Armed | JB-111N contact closed (alarm on) |
+
+Arm/Disarm from HomeKit sends a pulse → Jablotron toggles state → JB-111N reports new state back → HomeKit updates.
+
+### Verification / retry logic
+
+After each arm/disarm pulse, the firmware waits 2 seconds and verifies the JB-111N state matches the requested state. If not, it retries up to 3 times before giving up and syncing the HomeKit state to reality.
+
+---
+
 ## Supported devices and features
 
 ### Gen 3 Devices
@@ -21,7 +78,8 @@ Reverting to stock firmware is also possible [see here](https://github.com/mongo
 |Garage door opener                          |✓        |✓        |✓        |✗        |✓         |✓           |✗  
 |Roller shutter mode                         |✗        |✗        |✓        |✗        |✗         |✗           |✗  
 |Power measurement                           |✗        |✓        |✓        |✗        |✗         |✓           |✓
-|Temperature/Humidity measurement<sup>4</sup>|✓        |✓        |✓        |✓        |✗         |✗           |✗ 
+|Temperature/Humidity measurement<sup>4</sup>|✓        |✓        |✓        |✓        |✗         |✗           |✗
+|**Security System (Jablotron)**             |**✓**    |✗        |✗        |✗        |✗         |✗           |✗
 
 ### Plus devices
 
@@ -75,10 +133,10 @@ _Notes:_
 _✓: supported_  
 _-: possible but not supported yet_  
 _✗: not possible_  
-_1: includes lock, outlet and valve_  
+_1: includes lock, outlet, valve and security system (Jablotron fork only)_  
 _2: includes doorbell_  
 _3: includes motion, occupancy, contact, smoke, leak_  
-_4: with [Sensor AddOn/Shelly Plus AddOn](https://shop.shelly.cloud/temperature-sensor-addon-for-shelly-1-1pm-wifi-smart-home-automation#312)_ and DS18B20 sensor(s) (maximum 5 for Shelly Plus Addon, maximum 3 for Sensor AddOn) or 1 DHT sensor
+_4: with [Sensor AddOn/Shelly Plus AddOn](https://shop.shelly.cloud/temperature-sensor-addon-for-shelly-1-1pm-wifi-smart-home-automation#312) and DS18B20 sensor(s) (maximum 5 for Shelly Plus Addon, maximum 3 for Sensor AddOn) or 1 DHT sensor_
 
 Features that are not yet supported:
  * Cloud connections: no Shelly Cloud, no MQTT
@@ -94,84 +152,19 @@ Features that are not yet supported:
   * Watch a 2 minute [video](https://www.youtube.com/watch?v=BZc-kp4dDRw).
 
     * *New:* One link for all device types: `http://A.B.C.D/ota?url=http://shelly.rojer.cloud/update`
-    
-    <details>
-     
-      <summary>If that doesn't work (did you remember to have the stock firmware at the correct version), try the link for a specific model</summary>
-
-      * Gen 1 Devices:
-      
-        * Shelly 1: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly1.zip`
-
-        * Shelly 1L: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly1L.zip`
-
-        * Shelly 1PM: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly1PM.zip`
-
-        * Shelly 2: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly2.zip`  
-        _Note: Not for Shelly Dimmer 2!_
-
-        * Shelly 2.5: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly25.zip`
-
-        * Shelly Duo: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyDuo.zip`
-
-        * Shelly Duo RGBW (ColorBulb): `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyColorBulb.zip`
-
-        * Shelly i3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyI3.zip`
-       
-        * Shelly Plug: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlug.zip`
-
-        * Shelly Plug S: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlugS.zip`
-       
-        * Shelly RGBW2: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyRGBW2.zip`  
-        _Note: The Shelly must be in color mode to flash, flashing in white mode is not supported!_
-
-        * Shelly UNI: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyUNI.zip`
-
-        * Shelly Vintage: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyVintage.zip`
-
-
-      * Gen 2 Devices
-
-        * Shelly Plus 1: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlus1.zip`
-
-        * Shelly Plus 1 Mini: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlus1Mini.zip`
-
-        * Shelly Plus 1PM: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlus1PM.zip`
-   
-        * Shelly Plus 1PM Mini: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlus1PMMini.zip`
-      
-        * Shelly Plus 2PM: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlus2PM.zip`
-   
-        * Shelly Plus Plug S: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlusPlugS.zip`
-   
-        * Shelly Plus RGBWPM: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlusRGBWPM.zip`
-
-        * Shelly Plus I4 AC & DC: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlusI4.zip`
-
-        * Shelly Plus UNI: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyPlusUni.zip`
-
-      * Gen 3 Devices
-   
-        * Shelly 1 Gen3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly1Gen3.zip`
-       
-        * Shelly 1PM Gen3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly1PMGen3.zip`
-    
-        * Shelly 2PM Gen3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-Shelly2PMGen3.zip`
-       
-        * Shelly I4 Gen3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyI4Gen3.zip` 
-
-        * Shelly Mini 1 Gen3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyMini1Gen3.zip`
-   
-        * Shelly Mini 1 PM Gen3: `http://A.B.C.D/ota?url=http://rojer.me/files/shelly/shelly-homekit-ShellyMini1PMGen3.zip`
-
-
-     </details>
 
   * See [here](https://github.com/mongoose-os-apps/shelly-homekit/wiki/Flashing#updating-from-stock-firmware) for detailed instructions.
 
-  * Script [here](https://github.com/mongoose-os-apps/shelly-homekit/wiki/Flashing#Script) for an automated way to update your devices.
-    * ./flash_shelly.py hostname  (for single device)
-    * ./flash_shelly.py -a  (for all devices on the network)
+### Flashing this fork (Jablotron integration)
+
+Download the latest `shelly-homekit-Shelly1Gen3.zip` from [GitHub Actions](https://github.com/plx-t/shelly-homekit-jablotron/actions) and flash via the Shelly web UI:
+
+**Firmware → Update from file → Choose File → Upload**
+
+Or via curl:
+```
+curl -F "file=@shelly-homekit-Shelly1Gen3.zip" http://<SHELLY_IP>/update
+```
 
 ## Documentation
 
@@ -181,21 +174,11 @@ See our [Wiki](https://github.com/mongoose-os-apps/shelly-homekit/wiki).
 
 If you'd like to report a bug or a missing feature, please use [GitHub issue tracker](https://github.com/mongoose-os-apps/shelly-homekit/issues).
 
-Some of us can be found in the [Gitter chat room](https://gitter.im/shelly-homekit/community).
-
 ## Contributions and Development
 
 Code contributions are welcome! Check out [open issues](https://github.com/mongoose-os-apps/shelly-homekit/issues) and feel free to pick one up.
 
 See [here](https://github.com/mongoose-os-apps/shelly-homekit/wiki/Development) for development environment setup.
-
-## Authors
-
-See [here](AUTHORS.md).
-
-## Support
-
-If you like to show support for the project and support further development, consider a Donation to the current maintainer markib via [Paypal](https://www.paypal.com/donate/?hosted_button_id=RVFA9G5VMXRX8)
 
 ## License
 
